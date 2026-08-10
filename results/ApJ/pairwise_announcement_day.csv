@@ -1,0 +1,11 @@
+group_a,group_b,statistic,p_value,p_holm
+Monday,Tuesday,2.48436e+06,2.73113e-05,0.000273113
+Monday,Thursday,2.288e+06,0.00250888,0.0225799
+Monday,Friday,1.9396e+06,0.00960921,0.0768737
+Monday,Wednesday,2.37864e+06,0.0116452,0.0815161
+Tuesday,Wednesday,2.15662e+06,0.117964,0.707783
+Tuesday,Friday,1.75746e+06,0.21916,1
+Tuesday,Thursday,2.07705e+06,0.278573,1
+Wednesday,Thursday,1.87537e+06,0.594485,1
+Wednesday,Friday,1.58889e+06,0.798299,1
+Thursday,Friday,1.55717e+06,0.830561,1
