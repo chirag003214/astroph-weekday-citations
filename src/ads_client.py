@@ -70,16 +70,18 @@ def _ads_get(params: dict, token: str, attempt: int = 0) -> dict:
         return _ads_get(params, token, attempt + 1)
 
 
-def fetch_ads_records(journal: str, token: str) -> list:
+def fetch_ads_records(journal: str, token: str, years: tuple = config.DEFAULT_YEARS) -> list:
     """
-    Fetch all ADS records for the given journal using offset-based pagination.
+    Fetch all ADS records for the given journal and publication-year window
+    using offset-based pagination.
 
-    Results are cached to data/raw/{journal}_ads_raw.json. Subsequent calls
+    Results are cached to data/raw/{journal}_ads_raw.json (default period) or
+    data/raw/{journal}_{START-END}_ads_raw.json. Subsequent calls
     return the cached data without hitting the network.
 
     Raises EnvironmentError if token is empty/None.
     """
-    cache_path = config.get_ads_cache_path(journal)
+    cache_path = config.get_ads_cache_path(journal, years)
     cache_path.parent.mkdir(parents=True, exist_ok=True)
 
     if cache_path.exists():
@@ -94,14 +96,14 @@ def fetch_ads_records(journal: str, token: str) -> list:
             "and export it:  export ADS_API_TOKEN=<your-token>"
         )
 
-    journal_cfg = config.JOURNALS[journal]
+    query = config.get_ads_query(journal, years)
     all_docs: list = []
     start = 0
 
-    log.info("Querying ADS: %s", journal_cfg["ads_query"])
+    log.info("Querying ADS: %s", query)
     while True:
         params = {
-            "q": journal_cfg["ads_query"],
+            "q": query,
             "fl": config.ADS_FIELDS,
             "rows": config.ADS_ROWS,
             "start": start,
