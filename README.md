@@ -36,6 +36,16 @@ python run_pipeline.py --journal MNRAS
 
 # Re-run for ApJ (shares the arXiv metadata cache)
 python run_pipeline.py --journal ApJ
+
+# Journals: MNRAS, ApJ, ApJL, ApJS, A&A, JCAP, AJ, PASJ
+
+# Different publication-year window (e.g. the 2015–2020 appendix sample).
+# Cached to data/raw/<journal>_2015-2020_ads_raw.json, results in results/2015-2020/<journal>/
+python run_pipeline.py --journal MNRAS --years 2015-2020
+
+# Cross-journal weekend-vs-weekday table (reads results/*/weekend_weekday.csv)
+python summarize.py                     # → results/summary_weekend_weekday.(csv|md)
+python summarize.py --years 2015-2020   # → results/2015-2020/summary_weekend_weekday.(csv|md)
 ```
 
 First run fetches ~14,000 arXiv records in batches of 100 with a mandatory 3-second sleep between batches (arXiv rate limit). **Expect ~10–15 minutes** for the arXiv stage. All raw API responses are cached to `data/raw/`; subsequent runs are fully offline and complete in seconds.
@@ -62,6 +72,7 @@ All outputs land in `results/<journal>/`:
 | `year_stratified_*.csv` | Median per (year, day) |
 | `year_normalized_*.csv` | Stats on year-normalized citation counts |
 | `listing_size_proxy.csv / .md` | Dietrich-motivated listing-size analysis |
+| `weekend_weekday.csv` | Weekend vs weekday Mann-Whitney result (input to `summarize.py`) |
 | `RESULTS.md` | Auto-generated narrative summary with all statistics |
 
 ---
@@ -102,7 +113,8 @@ The schedule tests cover: Fri 13:59 vs 14:01, Sat, Sun, Mon 13:59 vs 14:01, and 
 
 ```
 config.py              — API URLs, journal presets, paths, statistical constants
-run_pipeline.py        — CLI entry point (--journal MNRAS | ApJ)
+run_pipeline.py        — CLI entry point (--journal <journal> [--years START-END])
+summarize.py           — cross-journal weekend-vs-weekday summary table
 src/
   ads_client.py        — NASA ADS pagination + arXiv ID extraction + caching
   arxiv_client.py      — arXiv Atom API, batch fetching, incremental JSONL cache

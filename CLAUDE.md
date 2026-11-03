@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this project does
 
-Bibliometrics pipeline (collaboration with Prof. Shantanu Desai, IIT Hyderabad) testing whether astro-ph arXiv papers submitted on different days of the week end up with different citation counts. Sample: MNRAS (configurable to ApJ) refereed articles 2020–2023 with an astro-ph.* primary category. Two independent day-of-week analyses: `submission_day` (7 bins) and `announcement_day` (5 bins, applying arXiv's 14:00 ET deadline rule).
+Bibliometrics pipeline (collaboration with Prof. Shantanu Desai, IIT Hyderabad) testing whether astro-ph arXiv papers submitted on different days of the week end up with different citation counts. Sample: refereed articles in MNRAS, ApJ, ApJL, ApJS, A&A, JCAP, AJ, PASJ with an astro-ph.* primary category; main period 2020–2023 (`config.DEFAULT_YEARS`), appendix period 2015–2020 via `--years`. Two independent day-of-week analyses: `submission_day` (7 bins) and `announcement_day` (5 bins, applying arXiv's 14:00 ET deadline rule).
 
 ## Common commands
 
@@ -15,6 +15,8 @@ pip install -r requirements.txt
 # Run full pipeline
 python run_pipeline.py --journal MNRAS
 python run_pipeline.py --journal ApJ   # shares the arXiv metadata cache
+python run_pipeline.py --journal AJ --years 2015-2020   # appendix period
+python summarize.py [--years 2015-2020]                # cross-journal table
 
 # Run tests
 pytest tests/ -v
@@ -28,6 +30,7 @@ Set `ADS_API_TOKEN` before running. The pipeline fails loudly if the token is mi
 ```
 config.py          — single source of truth: API URLs, journal queries, file paths
 run_pipeline.py    — 8-stage CLI orchestrator; imports from src/
+summarize.py       — collects results/[<period>/]<journal>/weekend_weekday.csv into one table
 src/
   ads_client.py    — ADS pagination (rows=2000), arXiv ID regex extraction, JSON cache
   arxiv_client.py  — arXiv Atom XML parsing, incremental JSONL cache, 3s rate-limit sleep
@@ -49,7 +52,7 @@ This is tested in `tests/test_schedule.py`, including two DST transition tests t
 
 ## Caching design
 
-- ADS: full results cached as `data/raw/{journal}_ads_raw.json`. Delete to re-fetch.
+- ADS: full results cached as `data/raw/{journal}_ads_raw.json` (default period) or `data/raw/{journal}_{START-END}_ads_raw.json`. Delete to re-fetch. Non-default periods write results to `results/{START-END}/{journal}/`.
 - arXiv: incremental JSONL at `data/raw/arxiv_meta.jsonl`. New IDs are appended; existing records are never re-fetched. Safe to interrupt and resume.
 - Analysis stage runs fully offline from cache.
 
@@ -57,16 +60,17 @@ This is tested in `tests/test_schedule.py`, including two DST transition tests t
 
 Add an entry to `JOURNALS` in `config.py`:
 ```python
-"A&A": {
-    "bibstem": "A&A",
-    "ads_query": "bibstem:A&A year:2020-2023 property:refereed doctype:article",
+"XYZ": {
+    "bibstem": "XYZ",
+    "ads_query": "bibstem:XYZ year:{years} property:refereed doctype:article",
 },
 ```
-Then pass `--journal A&A` to `run_pipeline.py` and add the new key to `argparse choices`.
+`{years}` is filled from `--years`. The `--journal` choices are read from `JOURNALS` automatically.
 
 ## Statistical conventions
 
 - Primary statistic: median + 95% percentile bootstrap CI (10,000 resamples, seed=42) — follows Desai arXiv:2410.03342.
 - Mean ± SEM also reported for comparison with Tsantilas et al. arXiv:2509.09601 (hep/nucl found ~6–7 fewer mean citations for weekend submissions, >10σ).
 - Holm-Bonferroni correction for pairwise Mann-Whitney tests.
+- Environment: run in the `weekday` conda env — `scipy.stats` fails to import (DLL error) in `base`.
 - `listing_size_proxy` requires an `ann_date` column; `run_pipeline.py` adds it before calling `run_analysis`.

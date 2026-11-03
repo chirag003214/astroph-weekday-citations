@@ -35,7 +35,6 @@ _SUB_ORDER = [
 ]
 _ANN_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 _DAY_ABBR = {d: d[:3] for d in _SUB_ORDER}
-_YEAR_COLORS = plt.cm.viridis(np.linspace(0.15, 0.85, 4))
 _TAB10 = plt.cm.tab10
 
 
@@ -142,6 +141,8 @@ def plot_year_stratified(
     fig, ax = plt.subplots(figsize=(9, 5))
     years = sorted(year_df["year"].unique().tolist())
     x = np.arange(len(day_order))
+    # One distinct colour per year (the sample may span 4 or more years).
+    year_colors = plt.cm.viridis(np.linspace(0.15, 0.85, max(len(years), 2)))
 
     for j, year in enumerate(years):
         ydf = year_df[year_df["year"] == year]
@@ -149,7 +150,7 @@ def plot_year_stratified(
         for d in day_order:
             row = ydf.loc[ydf["day"] == d, "median"]
             medians.append(float(row.values[0]) if len(row) > 0 else np.nan)
-        color = _YEAR_COLORS[j % len(_YEAR_COLORS)]
+        color = year_colors[j]
         ax.plot(x, medians, "o-", color=color, label=str(year), lw=2, ms=7, zorder=3)
 
     ax.set_xticks(x)
@@ -240,10 +241,15 @@ def plot_listing_size_proxy(proxy_df: pd.DataFrame, journal: str, path_stem: Pat
 
 # ── Master dispatcher ─────────────────────────────────────────────────────────
 
-def make_all_plots(df: pd.DataFrame, stats_results: dict, results_dir: Path):
-    """Generate and save all nine figures to results_dir."""
+def make_all_plots(
+    df: pd.DataFrame, stats_results: dict, results_dir: Path, label: str | None = None
+):
+    """Generate and save all figures to results_dir.
+
+    label prefixes every figure title; defaults to the directory name.
+    """
     results_dir.mkdir(parents=True, exist_ok=True)
-    journal = results_dir.name
+    journal = label or results_dir.name
 
     sub_stats = stats_results["submission_day"]["bin_stats"]
     ann_stats = stats_results["announcement_day"]["bin_stats"]
